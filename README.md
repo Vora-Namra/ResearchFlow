@@ -45,49 +45,49 @@ Traditional single-prompt LLM research suffers from knowledge cutoffs, hallucina
 
 ```mermaid
 flowchart TD
-    User([User Input: Topic]) --> Stage1
+    User(["User (Input Topic)"]) --> SA
 
     subgraph Pipeline ["Autonomous Multi-Agent Pipeline"]
         subgraph Stage1 ["Stage 1: Search Agent"]
-            SA["LangChain ReAct Agent<br>(ChatGroq)"]
-            TS["tavily_search Tool<br>(Pydantic Schema)"]
+            SA["Search Agent (ChatGroq)"]
+            TS["tavily_search Tool"]
             TavilyAPI[("Tavily Search API")]
-            SA <--> TS
-            TS <--> TavilyAPI
+            SA --- TS
+            TS --- TavilyAPI
         end
-
-        Stage1 -->|"Raw search results & source URLs"| Stage2
 
         subgraph Stage2 ["Stage 2: Reader Agent"]
-            RA["LangChain ReAct Agent<br>(ChatGroq)"]
-            SC["scrape_url Tool<br>(BeautifulSoup4)"]
+            RA["Reader Agent (ChatGroq)"]
+            SC["scrape_url Tool"]
             WebPage[("Target Web Content")]
-            RA <--> SC
-            SC <--> WebPage
+            RA --- SC
+            SC --- WebPage
         end
-
-        Stage2 -->|"Combined Search + Scraped Text"| Stage3
 
         subgraph Stage3 ["Stage 3: Writer Chain"]
             WP["Structured Prompt Template"]
-            WLLM["ChatGroq LLM"]
+            WLLM["Writer LLM (ChatGroq)"]
             WOut["StrOutputParser"]
-            WP --> WLLM --> WOut
+            WP --> WLLM
+            WLLM --> WOut
         end
-
-        Stage3 -->|"Draft Report (Markdown)"| Stage4
 
         subgraph Stage4 ["Stage 4: Critic Chain"]
-            CP["Rubric & Critique Prompt"]
-            CLLM["ChatGroq LLM"]
+            CP["Evaluation Rubric Prompt"]
+            CLLM["Critic LLM (ChatGroq)"]
             COut["StrOutputParser"]
-            CP --> CLLM --> COut
+            CP --> CLLM
+            CLLM --> COut
         end
+
+        SA -->|"Search Results & Source URLs"| RA
+        RA -->|"Aggregated Research & Scraped Text"| WP
+        WOut -->|"Draft Markdown Report"| CP
     end
 
-    Stage4 --> StateBundle[("Pipeline State Store")]
-    StateBundle --> UI["Streamlit Web UI / CLI Terminal"]
-    UI --> Downloader["Export Markdown Report (.md)"]
+    COut --> StateStore[("Pipeline State Store")]
+    StateStore --> UI["Streamlit Web UI / CLI Terminal"]
+    UI --> ExportDoc["Export Markdown Report (.md)"]
 ```
 
 ### Agent & Chain Breakdown
